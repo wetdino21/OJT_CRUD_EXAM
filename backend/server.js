@@ -58,10 +58,11 @@ app.post("/api/auth/login", async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
 
+        console.info("User logged in:", user.id);
         const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: "1h" });
         res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "Strict", expires: new Date(Date.now() + 3600000) });
 
-        res.json({ message: "Login successful", userId: user.id });
+        res.json({ message: "Login successful", user: user });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -79,7 +80,8 @@ app.post("/api/auth/update", verifyToken, async (req, res) => {
         const values = hashedPassword ? [name, email, hashedPassword, userId] : [name, email, userId];
 
         await db.execute(query, values);
-        res.status(200).json({ message: "User updated successfully" });
+        const [updatedUser] = await db.execute("SELECT id, name, email FROM users WHERE id = ?", [userId]);
+        res.status(200).json({ message: "User updated successfully", user: updatedUser[0] });
         console.info("User updated successfully");
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -94,15 +96,14 @@ app.post("/api/auth/delete", verifyToken, async (req, res) => {
 
         console.info("Authenticated User ID:", userId);
 
-        const deleteUser = await db.execute("DELETE FROM users WHERE id = ?", [userId]);
+        const [deleteUser] = await db.execute("DELETE FROM users WHERE id = ?", [userId]);
 
-        if (deleteUser[0].affectedRows === 0) return res.status(404).json({ error: "User not found." });
+        if (deleteUser.affectedRows === 0) return res.status(404).json({ error: "User not found." });
         res.status(200).json({ message: "User deleted successfully" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
-
 
 // Protected Route
 app.post("/api/auth/protected", verifyToken, async (req, res) => {

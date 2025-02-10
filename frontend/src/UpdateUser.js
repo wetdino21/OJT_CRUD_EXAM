@@ -1,85 +1,45 @@
 import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
+import { update } from "./redux/actions/authActions";
 
 const UpdateUser = () => {
-    const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const user = useSelector((state) => state.auth.user);
+    const [name, setName] = useState(user ? user.name : "");
+    const [email, setEmail] = useState(user ? user.email : "");
     const [message, setMessage] = useState("");
-    const [userId, setUserId] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch();
 
-    // Fetch user data
     useEffect(() => {
-        const fetchUserData = async () => {
-            // const response = await axios.post(
-            //     "http://localhost:5000/api/auth/protected",
-            //     {}, // Empty body (if not required)
-            //     { withCredentials: true } // Send cookies
-            // );
+        if (user) {
+            setName(user.name);
+            setEmail(user.email);
+        }
+    }, [user]);
 
-            // setUserId(response.data.id);
-            // setName(response.data.name);
-            // setEmail(response.data.email);
-            // setLoading(false);
-
-
-            try {
-                const response = await axios.post(
-                    "http://localhost:5000/api/auth/protected",
-                    {}, // Empty body (if not required)
-                    { withCredentials: true } // Send cookies
-                );
-
-                setUserId(response.data.id);
-                setName(response.data.name);
-                setEmail(response.data.email);
-                setLoading(false);
-            } catch (error) {
-                console.error("Error fetching user data:", error);
-                setMessage("You must be logged in to update your profile.");
-                setLoading(false);
-            }
-        };
-
-        fetchUserData();
-    }, []);
-
-    // Handle profile update
     const handleUpdate = async (e) => {
         e.preventDefault();
-
-        if (!userId) {
-            setMessage("You must be logged in to update your profile.");
-            return;
-        }
-
         try {
-            const response = await axios.post(
-                `http://localhost:5000/api/auth/update`,
-                { userId, name, email, password },
-                { withCredentials: true }
-            );
-
-            setMessage(response.data.message);
-        } catch (error) {
-            setMessage(error.response ? error.response.data.error : "Update failed.");
+            const response = await axios.post("http://localhost:5000/api/auth/update", {
+                userId: user.id,
+                name,
+                email,
+            }, { withCredentials: true });
+            if (response.status === 200) {
+                dispatch(update(response.data.user));
+                setMessage("Update successful!");
+            } else {
+                setMessage("Update failed.");
+            }
+        } catch (err) {
+            setMessage(err.response ? err.response.data.error : "Update failed.");
         }
     };
 
-    if (loading) {
-        return <div>Loading...</div>;
-    }
-    if (userId === null) {
-        return <h1>You must be logged in to update your profile.</h1>;
-    }
-
-
     return (
         <div>
-            <h1>Update Profile</h1>
+            <h1>Update User</h1>
             <form onSubmit={handleUpdate}>
-                <h3>User ID: {userId}</h3>
                 <input
                     type="text"
                     placeholder="Name"
@@ -94,15 +54,10 @@ const UpdateUser = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                 />
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                />
                 <button type="submit">Update</button>
             </form>
             <p>{message}</p>
+            <p>{user ? `Current user: ${user.name}` : "No user data"}</p>
         </div>
     );
 };

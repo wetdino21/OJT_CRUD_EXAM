@@ -1,22 +1,26 @@
 import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
+import { register } from "./redux/actions/authActions";
 
 const Register = () => {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
+    const dispatch = useDispatch();
+    const authMessage = useSelector((state) => state.auth.message);
 
     const handleRegister = async (e) => {
         e.preventDefault();
-
         try {
             const response = await axios.post("http://localhost:5000/api/auth/register", {
-                name: name,
-                email: email,
-                password: password,
+                name,
+                email,
+                password,
             }, { withCredentials: true });
-            setMessage(response.data.message);
+            dispatch(register(response.data));
+            setMessage("Registration successful!");
         } catch (err) {
             setMessage(err.response ? err.response.data.error : "Registration failed.");
         }
@@ -50,6 +54,7 @@ const Register = () => {
                 <button type="submit">Register</button>
             </form>
             <p>{message}</p>
+            <p>{authMessage}</p>
         </div>
     );
 };

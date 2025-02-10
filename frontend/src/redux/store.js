@@ -1,8 +1,10 @@
-import { createStore, applyMiddleware } from "redux";
-import { thunk } from "redux-thunk"; // Check if this import is correct
+import { configureStore } from "@reduxjs/toolkit";
 import rootReducer from "./reducers";
 
-const store = createStore(rootReducer, applyMiddleware(thunk)); // Error happens here
+const store = configureStore({
+  reducer: rootReducer,
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(),
+});
 
 export default store;
 
